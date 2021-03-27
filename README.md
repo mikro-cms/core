@@ -1,2 +1,2 @@
 # core
-Package core mikro cms
+Package core mikro-cms
