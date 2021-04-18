@@ -242,9 +242,11 @@ plugin.createComponents = async function (theme, pageOptions) {
     let themeComponent = {
       component_options: {},
       ...themeOptions.components[componentIndex],
-      ...pageOptions.components[componentIndex],
       page: pageOptions.page_id
     };
+
+    // override component options
+    themeComponent.component_options = { ...themeComponent.component_options, ...pageOptions.components[componentIndex].component_options };
 
     const newComponent = new models.component(themeComponent);
 
