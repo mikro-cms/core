@@ -143,7 +143,7 @@ plugin.themeInfo = function (themeName) {
     'theme_name': themePackage.name,
     'theme_version': themePackage.version,
     'theme_url': themePackage.homepage,
-    'theme_author': themePackage.author
+    'theme_author': themePackage.author.name
   };
 
   return themeInfo;
