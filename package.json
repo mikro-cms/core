@@ -1,6 +1,6 @@
 {
   "name": "@mikro-cms/core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Package core mikro-cms",
   "main": "index.js",
   "scripts": {
