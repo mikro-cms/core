@@ -246,7 +246,7 @@ plugin.createComponents = async function (theme, pageOptions) {
     };
 
     // override component options
-    themeComponent.component_options = { ...themeComponent.component_options, ...pageOptions.components[componentIndex].component_options };
+    themeComponent.component_options = { ...themeComponent.component_options, ...pageOptions.components[componentIndex] };
 
     const newComponent = new models.component(themeComponent);
 
