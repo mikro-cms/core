@@ -1,5 +1,3 @@
-const path = require('path');
-
 /**
  * Cache utils.
  */
@@ -9,27 +7,16 @@ const cachedUtils = {};
  * Utility.
  *
  * @public
- * @param   request
- * @param   response
+ * @param   object
  * @return  object
  */
-function utils(req, res) {
-  if (typeof cachedUtils[res.locals.page._id] !== 'undefined') {
-    return cachedUtils[res.locals.page._id];
+function utils(locals) {
+  if (typeof cachedUtils[locals.page._id] !== 'undefined') {
+    return cachedUtils[locals.page._id];
   }
 
-  const themeAuthor = correctedThemeAuthor(res.locals.page.theme.theme_author);
-  const themeName = correctedThemeName(res.locals.page.theme.theme_name);
-  const pathTheme = themePath(themeAuthor, themeName);
-  const urlTheme = themePublicURL(themeAuthor, themeName);
-
   // a.k.a this
-  const self = {
-    themePath: pathTheme,
-    themeView: themeViewPath(pathTheme),
-    themePublic: themePublicPath(pathTheme),
-    themeURL: urlTheme
-  };
+  const self = {};
 
   /**
    * Create path view by current theme.
@@ -38,7 +25,7 @@ function utils(req, res) {
    * @return  string
    */
   self.theme = function (path) {
-    return `${self.themeView}${path}`;
+    return `${locals.page.theme.theme_path}${path}`;
   }
 
   /**
@@ -48,75 +35,13 @@ function utils(req, res) {
    * @return  string
    */
   self.assets = function (path) {
-    return `${process.env.APP_URL}${self.themeURL}${path}`;
+    return `${process.env.APP_URL}${locals.page.theme.theme_public_url}${path}`;
   }
 
   // make utils cache
-  cachedUtils[res.locals.page._id] = self;
+  cachedUtils[locals.page._id] = self;
 
   return self;
-}
-
-/**
- * Corrected theme author format.
- *
- * @param   string
- * @return  string
- */
-function correctedThemeAuthor(themeAuthor) {
-  return themeAuthor.toLowerCase().replace(/\s/, '-');
-}
-
-/**
- * Corrected theme name format.
- *
- * @param   string
- * @return  string
- */
-function correctedThemeName(themeName) {
-  return themeName.toLowerCase().replace(/\s/, '-');
-}
-
-/**
- * Theme module path.
- *
- * @param   string
- * @param   string
- * @return  string
- */
-function themePath(themeAuthor, themeName) {
-  return path.resolve(process.cwd(), 'node_modules', '@' + themeAuthor, 'theme-' + themeName);
-}
-
-/**
- * Theme view path.
- *
- * @param   response
- * @return  string
- */
-function themeViewPath(themePath) {
-  return path.resolve(themePath, 'views');
-}
-
-/**
- * Theme public path.
- *
- * @param   string
- * @return  string
- */
-function themePublicPath(themePath) {
-  return path.resolve(themePath, 'public');
-}
-
-/**
- * Theme public url.
- *
- * @param   string
- * @param   string
- * @return  string
- */
-function themePublicURL(themeAuthor, themeName) {
-  return `/public/${themeAuthor}/${themeName}`;
 }
 
 module.exports = utils;

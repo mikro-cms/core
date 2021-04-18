@@ -27,14 +27,13 @@ function serviceGenerate(req, res, next) {
         })
       }
 
-      const ThemeIndexPath = req.utils.theme('/index');
       const VarsBind = {
         ...req.utils,
         ...res.locals,
         trans: res.trans
       };
 
-      res.render(ThemeIndexPath, VarsBind);
+      res.render(res.locals.page.theme.theme_view, VarsBind);
     });
   }
 }

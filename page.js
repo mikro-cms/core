@@ -24,7 +24,7 @@ function servicePage(req, res, next) {
         res.locals.page = page;
 
         // initialization utils
-        req.utils = utils(req, res);
+        req.utils = utils(res.locals);
       }
 
       next();
