@@ -16,6 +16,14 @@ function locale(req, res, next) {
     return trans(acceptedLanguage, key);
   }
 
+  res.transValidator = function (result) {
+    for (var error of result) {
+      error.msg = trans(acceptedLanguage, error.msg);
+    }
+
+    return result;
+  }
+
   next();
 }
 
