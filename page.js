@@ -19,6 +19,7 @@ function servicePage(req, res, next) {
       if (err) {
         req.error = err;
       } else if (page === null) {
+        req.status = 404;
         req.error = new Error(res.trans('exception.page_not_found'));
       } else {
         res.locals.page = page;

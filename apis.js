@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const locale = require('./locale');
+const clientApi = require('./client-api');
 const page = require('./page');
 const auth = require('./auth');
 const guard = require('./guard');
@@ -16,9 +17,14 @@ const models = require('@mikro-cms/models');
  */
 let app = null;
 
+// Express router
+const apiRouter = express.Router();
+const pageRouter = express.Router();
+
 /**
  * Set current express app instance.
  *
+ * @public
  * @param   object    express app instance
  * @return  void
  */
@@ -29,6 +35,7 @@ function setInstance(currentInstance) {
 /**
  * Bootstraping system pages.
  *
+ * @public
  * @param   object    express app instance
  * @param   callback
  * @return  void
@@ -40,6 +47,14 @@ async function bootstrap(app, cb) {
 
   // first time migration also initial system setup
   if (migrateStatus === null) {
+    const importDefaultApi = await plugin.importApi('@mikro-cms/api-v1');
+
+    if (!importDefaultApi) {
+      console.log('bootstrap could not found api!');
+
+      return;
+    }
+
     const importDefaultTheme = await plugin.importTheme('@mikro-cms/theme-web-stories');
 
     if (!importDefaultTheme) {
@@ -56,35 +71,54 @@ async function bootstrap(app, cb) {
       return;
     }
 
-    await plugin.loadPages();
     await plugin.setupComplete();
-
-    handlePage();
-    cb();
-  } else {
-    await plugin.loadPages();
-
-    handlePage();
-    cb();
   }
+
+  handleApi();
+  handlePage();
+
+  await plugin.loadApis();
+  await plugin.loadPages();
+
+  app.use(process.env.API_PREFIX, apiRouter);
+  app.use(pageRouter);
+  cb();
+}
+
+/**
+ * Handle every requested api.
+ *
+ * @private
+ * @return    void
+ */
+function handleApi() {
+  const handler = [
+    locale,
+    auth,
+    clientApi,
+    guard.api,
+    generate.api
+  ];
+
+  apiRouter.all('/:apiName/:apiVersion/:apiResource', handler);
 }
 
 /**
  * Handle every requested page.
  *
- * @param   string
- * @return  void
+ * @private
+ * @return    void
  */
 function handlePage() {
   const handler = [
     locale,
     auth,
     page,
-    guard,
-    generate
+    guard.page,
+    generate.page
   ];
 
-  app.use(handler);
+  pageRouter.all(handler);
 }
 
 /**
@@ -93,8 +127,101 @@ function handlePage() {
 const plugin = {};
 
 /**
+ * Import installed api into database.
+ *
+ * @public
+ * @param   string
+ * @return  boolean
+ */
+plugin.importApi = async function (apiName) {
+  const apiInfo = plugin.apiInfo(apiName);
+
+  if (!apiInfo) {
+    return false;
+  }
+
+  const newApi = new models.api(apiInfo);
+
+  await newApi.save();
+
+  const resources = plugin.resourceInfo(newApi);
+
+  if (!resources) {
+    return false;
+  }
+
+  resources.forEach(plugin.createApiPermission);
+
+  return true;
+};
+
+/**
+ * Create api information from package
+ * and check api compilibity.
+ *
+ * @public
+ * @param   string
+ * @return  mixed
+ */
+plugin.apiInfo = function (apiName) {
+  const apiPathRoot = path.resolve('node_modules', apiName);
+  const apiPathPackage = path.resolve(apiPathRoot, 'package.json');
+  const apiPathOptions = path.resolve(apiPathRoot, 'index.js');
+  const apiPathResource = path.resolve(apiPathRoot, 'resource/index.js');
+
+  if (!plugin.isFile(apiPathPackage)) return false;
+  if (!plugin.isFile(apiPathOptions)) return false;
+  if (!plugin.isFile(apiPathResource)) return false;
+
+  const apiPackage = require(apiPathPackage);
+
+  const apiInfo = {
+    'api_name': apiName,
+    'api_version': apiPackage.version,
+    'api_author': apiPackage.author,
+    'api_url': apiPackage.homepage,
+    'api_path': apiPathRoot,
+    'api_info': apiPathPackage,
+    'api_path_options': apiPathOptions,
+    'api_resource': apiPathResource
+  };
+
+  return apiInfo;
+};
+
+/**
+ * Create resource information
+ * and check resource compilibity.
+ *
+ * @public
+ * @param   object
+ * @return  mixed
+ */
+plugin.resourceInfo = function (apiInfo) {
+  const resources = require(apiInfo.api_resource);
+
+  if (resources.constructor().toString() !== '[object Object]') return false;
+
+  const resourceInfo = [];
+
+  for (var resourceIndex in resources) {
+    const resource = resources[resourceIndex];
+
+    resourceInfo.push({
+      'api': apiInfo._id,
+      'role': resource.permission.role,
+      'role_group': resource.permission.role_group,
+      'api_resource': resourceIndex
+    });
+  }
+
+  return resourceInfo;
+};
+
+/**
  * Import installed theme into database.
  *
+ * @public
  * @param   string
  * @return  boolean
  */
@@ -116,6 +243,7 @@ plugin.importTheme = async function (themeName) {
  * Create theme information from package
  * and check theme compilibity.
  *
+ * @public
  * @param   string
  * @return  mixed
  */
@@ -134,16 +262,16 @@ plugin.themeInfo = function (themeName) {
   const themePackage = require(themePathPackage);
 
   const themeInfo = {
-    'theme_path': themePathRoot,
-    'theme_info': themePathPackage,
-    'theme_path_options': themePathOptions,
-    'theme_view': themePathView,
-    'theme_public': themePathPublic,
-    'theme_public_url': `/${process.env.PUBLIC_DIR}/${themePackage.name}`,
     'theme_name': themePackage.name,
     'theme_version': themePackage.version,
+    'theme_author': themePackage.author.name,
     'theme_url': themePackage.homepage,
-    'theme_author': themePackage.author.name
+    'theme_path': themePathRoot,
+    'theme_info': themePathPackage,
+    'theme_options': themePathOptions,
+    'theme_view': themePathView,
+    'theme_public_path': themePathPublic,
+    'theme_public_url': `/${process.env.PUBLIC_DIR}/${themePackage.name}`
   };
 
   return themeInfo;
@@ -152,6 +280,7 @@ plugin.themeInfo = function (themeName) {
 /**
  * Is resouce file exists.
  *
+ * @public
  * @param   string
  * @return  boolean
  */
@@ -172,6 +301,7 @@ plugin.isFile = function (pathFile) {
 /**
  * Is resouce directory exists.
  *
+ * @public
  * @param   string
  * @return  boolean
  */
@@ -192,6 +322,7 @@ plugin.isDirectory = function (pathDir) {
 /**
  * Create a new page.
  *
+ * @public
  * @param   string
  * @return  boolean
  */
@@ -212,11 +343,8 @@ plugin.createPage = async function (pageOptions) {
 
   await newPage.save();
 
-  pageOptions.page_id = newPage._id;
-  pageOptions.theme_id = selectedTheme._id;
-
   await plugin.createComponents(selectedTheme, pageOptions);
-  await plugin.createPermission(pageOptions);
+  await plugin.createPagePermission(pageOptions);
 
   return true;
 };
@@ -224,14 +352,15 @@ plugin.createPage = async function (pageOptions) {
 /**
  * Create component for page related to theme.
  *
+ * @public
  * @param   object
  * @param   object
  * @return  void
  */
 plugin.createComponents = async function (theme, pageOptions) {
-  if (!plugin.isFile(theme.theme_path_options)) return false;
+  if (!plugin.isFile(theme.theme_options)) return false;
 
-  let themeOptions = require(theme.theme_path_options);
+  let themeOptions = require(theme.theme_options);
 
   themeOptions = {
     components: {},
@@ -242,7 +371,7 @@ plugin.createComponents = async function (theme, pageOptions) {
     let themeComponent = {
       component_options: {},
       ...themeOptions.components[componentIndex],
-      page: pageOptions.page_id
+      page: pageOptions._id
     };
 
     // override component options
@@ -255,17 +384,14 @@ plugin.createComponents = async function (theme, pageOptions) {
 };
 
 /**
- * Create page permission.
+ * Create api permission.
  *
+ * @public
  * @param   object
  * @return  boolean
  */
-plugin.createPermission = async function (pageOptions) {
-  const pagePermission = {
-    ...pageOptions.permission,
-    page: pageOptions.page_id
-  };
-  const newPermission = new models.permission(pagePermission);
+plugin.createApiPermission = async function (apiOptions) {
+  const newPermission = new models.apiPermission(apiOptions);
 
   await newPermission.save();
 
@@ -273,8 +399,65 @@ plugin.createPermission = async function (pageOptions) {
 };
 
 /**
+ * Create page permission.
+ *
+ * @public
+ * @param   object
+ * @return  boolean
+ */
+plugin.createPagePermission = async function (pageOptions) {
+  const pagePermission = {
+    ...pageOptions.permission,
+    page: pageOptions._id
+  };
+  const newPermission = new models.pagePermission(pagePermission);
+
+  await newPermission.save();
+
+  return true;
+};
+
+/**
+ * Load all available apis.
+ *
+ * @public
+ * @return    void
+ */
+plugin.loadApis = async function () {
+  const apis = await models.api.find()
+    .exec();
+
+  if (apis === null) {
+    console.log('bootstrap successful without apis!');
+
+    return;
+  }
+
+  apis.forEach(plugin.benchmarkApi);
+};
+
+/**
+ * Benchmarking apis for setup and make fast process next requested.
+ *
+ * @public
+ * @param   object
+ * @return  void
+ */
+plugin.benchmarkApi = function (api) {
+  const resources = require(api.api_resource);
+
+  for (var resourceIndex in resources) {
+    const resourcePath = '/' + api.api_name + resourceIndex;
+    const resource = resources[resourceIndex];
+
+    apiRouter[resource.method](resourcePath, resource.handler);
+  }
+};
+
+/**
  * Load all available pages.
  *
+ * @public
  * @return    void
  */
 plugin.loadPages = async function () {
@@ -294,22 +477,18 @@ plugin.loadPages = async function () {
 /**
  * Benchmarking pages for setup and make fast process next requested.
  *
+ * @public
  * @param   object
- * @return  object
+ * @return  void
  */
 plugin.benchmarkPage = function (page) {
-  const locals = {
-    page: page
-  };
-
-  plugin.registerPublic(page.theme.theme_public_url, page.theme.theme_public);
-
-  return plugin;
+  plugin.registerPublic(page.theme.theme_public_url, page.theme.theme_public_path);
 };
 
 /**
  * Register public resource.
  *
+ * @public
  * @param   string
  * @param   string
  * @return  void
@@ -321,6 +500,7 @@ plugin.registerPublic = function (pathURL, pathDir) {
 /**
  * Complete setup system.
  *
+ * @public
  * @return  void
  */
 plugin.setupComplete = async function () {

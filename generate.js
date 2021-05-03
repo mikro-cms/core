@@ -1,16 +1,36 @@
 const component = require('@mikro-cms/models/component');
 
 /**
- * Generate service to compile requested page with components.
+ * Generate api service to compile requested api.
  *
  * @public
  * @param   request
  * @param   response
  * @param   next
  */
-function serviceGenerate(req, res, next) {
+function serviceApiGenerate(req, res, next) {
   if (req.error) {
-    res.send(req.error.toString());
+    res.status(req.status || 500)
+      .send({
+        message: req.error.toString()
+      });
+  } else {
+    next();
+  }
+}
+
+/**
+ * Generate page service to compile requested page with components.
+ *
+ * @public
+ * @param   request
+ * @param   response
+ * @param   next
+ */
+function servicePageGenerate(req, res, next) {
+  if (req.error) {
+    res.status(req.status || 500)
+      .send(req.error.toString());
   } else {
     component.find({
       page: res.locals.page._id
@@ -38,4 +58,7 @@ function serviceGenerate(req, res, next) {
   }
 }
 
-module.exports = serviceGenerate;
+module.exports = {
+  api: serviceApiGenerate,
+  page: servicePageGenerate
+};

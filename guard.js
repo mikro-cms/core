@@ -1,4 +1,50 @@
-const modelPermission = require('@mikro-cms/models/permission');
+const modelPagePermission = require('@mikro-cms/models/page-permission');
+const modelApiPermission = require('@mikro-cms/models/api-permission');
+
+/**
+ * Guard service to get current api permission.
+ *
+ * @public
+ * @param   request
+ * @param   response
+ * @param   next
+ */
+function serviceApiGuard(req, res, next) {
+  if (req.error) return next();
+
+  let apiPermission = {
+    api: res.locals.api._id
+  };
+
+  if (typeof req.params.apiResource === 'string') {
+    apiPermission.api_resource = '/' + req.params.apiResource;
+  } else {
+    req.status = 404;
+    req.error = new Error(res.trans('exception.api_not_found'));
+
+    return next();
+  }
+
+  if (res.locals.session.user.role.role_group === 'guest') {
+    apiPermission.role_group = res.locals.session.user.role.role_group;
+  } else {
+    apiPermission.role = res.locals.session.user.role.role_id;
+  }
+
+  modelApiPermission.findOne(apiPermission)
+    .exec(function (err, permission) {
+      if (err) {
+        req.error = err;
+      } else if (permission === null) {
+        req.status = 403;
+        req.error = new Error(res.trans('exception.api_access_denied'));
+      } else {
+        res.locals.permission = permission;
+      }
+
+      next();
+    });
+}
 
 /**
  * Guard service to get current page permission.
@@ -8,7 +54,7 @@ const modelPermission = require('@mikro-cms/models/permission');
  * @param   response
  * @param   next
  */
-function serviceGuard(req, res, next) {
+function servicePageGuard(req, res, next) {
   if (req.error) return next();
 
   let pagePermission = {
@@ -21,17 +67,22 @@ function serviceGuard(req, res, next) {
     pagePermission.role = res.locals.session.user.role.role_id;
   }
 
-  modelPermission.findOne(pagePermission).exec(function (err, permission) {
-    if (err) {
-      req.error = err;
-    } else if (permission === null) {
-      req.error = new Error(res.trans('exception.access_denied'));
-    } else {
-      res.locals.permission = permission;
-    }
+  modelPagePermission.findOne(pagePermission)
+    .exec(function (err, permission) {
+      if (err) {
+        req.error = err;
+      } else if (permission === null) {
+        req.status = 403;
+        req.error = new Error(res.trans('exception.page_access_denied'));
+      } else {
+        res.locals.permission = permission;
+      }
 
-    next();
-  });
+      next();
+    });
 }
 
-module.exports = serviceGuard;
+module.exports = {
+  api: serviceApiGuard,
+  page: servicePageGuard
+}
