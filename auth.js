@@ -18,7 +18,7 @@ function serviceAuth(req, res, next) {
   let token = null;
 
   if (req.cookies['token']) {
-    token = token;
+    token = req.cookies['token'];
   } else if (req.get('Authorization')) {
     token = req.get('Authorization');
   } else {
@@ -30,7 +30,7 @@ function serviceAuth(req, res, next) {
 
   modelSession.findOne({ token })
     .populate('user')
-    .populate('user.role')
+    .populate({ path: 'user', populate: { path: 'role' } })
     .exec(function (err, session) {
       if (err) {
         req.error = err;
@@ -39,7 +39,7 @@ function serviceAuth(req, res, next) {
         // set as guest user
         res.locals.session = guestUser();
       } else {
-        res.locals.session = userAccess.get();
+        res.locals.session = session;
       }
 
       next();
