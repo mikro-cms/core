@@ -7,7 +7,9 @@ const page = require('./page');
 const auth = require('./auth');
 const guard = require('./guard');
 const generate = require('./generate');
-const pageHome = require('./home');
+const defaultThemes = require('./themes/index.js');
+const defaultApis = require('./apis/index.js');
+const defaultPages = require('./pages/index.js');
 
 // load models for initial availbility
 const models = require('@mikro-cms/models');
@@ -47,29 +49,9 @@ async function bootstrap(app, cb) {
 
   // first time migration also initial system setup
   if (migrateStatus === null) {
-    const importDefaultApi = await plugin.importApi('@mikro-cms/api-v1');
-
-    if (!importDefaultApi) {
-      console.log('bootstrap could not found api!');
-
-      return;
-    }
-
-    const importDefaultTheme = await plugin.importTheme('@mikro-cms/theme-web-stories');
-
-    if (!importDefaultTheme) {
-      console.log('bootstrap could not found theme!');
-
-      return;
-    }
-
-    const createHomePage = await plugin.createPage(pageHome);
-
-    if (!createHomePage) {
-      console.log('bootstrap could not create home page!');
-
-      return;
-    }
+    if (!await importDefaultApis()) return;
+    if (!await importDefaultThemes()) return;
+    if (!await createDefaultPages()) return;
 
     await plugin.setupComplete();
   }
@@ -81,8 +63,68 @@ async function bootstrap(app, cb) {
   await plugin.loadPages();
 
   app.use(process.env.API_PREFIX, apiRouter);
-  app.use(pageRouter);
+  app.use('/', pageRouter);
   cb();
+}
+
+/**
+ * Import default themes.
+ *
+ * @private
+ * @return    boolean
+ */
+async function importDefaultApis() {
+  for (var defaultApi of defaultApis) {
+    const importDefaultApi = await plugin.importApi(defaultApi);
+
+    if (!importDefaultApi) {
+      console.log('bootstrap could not found api!');
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Import default themes.
+ *
+ * @private
+ * @return    boolean
+ */
+async function importDefaultThemes() {
+  for (var defaultTheme of defaultThemes) {
+    const importDefaultTheme = await plugin.importTheme(defaultTheme);
+
+    if (!importDefaultTheme) {
+      console.log('bootstrap could not found theme!');
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Create default pages.
+ *
+ * @private
+ * @return    boolean
+ */
+async function createDefaultPages() {
+  for (var pageOptions of defaultPages) {
+    const createdPage = await plugin.createPage(pageOptions);
+
+    if (!createdPage) {
+      console.log('bootstrap could not create default page!');
+
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -118,7 +160,7 @@ function handlePage() {
     generate.page
   ];
 
-  pageRouter.all(handler);
+  pageRouter.all('/*', handler);
 }
 
 /**
@@ -345,11 +387,11 @@ plugin.isDirectory = function (pathDir) {
  * @return  boolean
  */
 plugin.createPage = async function (pageOptions) {
-  const selectedTheme = await models.theme.findOne(pageOptions.theme);
+  const selectedTheme = await models.theme.findOne({
+    theme_name: pageOptions.page.theme.theme_name
+  });
 
-  if (selectedTheme === null) {
-    return false;
-  }
+  if (selectedTheme === null) return false;
 
   const newPageOptions = {
     'page_url': pageOptions.page.page_url,
@@ -425,7 +467,7 @@ plugin.createApiPermission = async function (apiOptions) {
 plugin.createPagePermission = async function (pageOptions) {
   const pagePermission = {
     ...pageOptions.permission,
-    page: pageOptions._id
+    page: pageOptions.page._id
   };
   const newPermission = new models.pagePermission(pagePermission);
 
