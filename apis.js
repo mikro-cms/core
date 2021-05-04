@@ -343,6 +343,8 @@ plugin.createPage = async function (pageOptions) {
 
   await newPage.save();
 
+  pageOptions.page = newPage;
+
   await plugin.createComponents(selectedTheme, pageOptions);
   await plugin.createPagePermission(pageOptions);
 
@@ -371,7 +373,7 @@ plugin.createComponents = async function (theme, pageOptions) {
     let themeComponent = {
       component_options: {},
       ...themeOptions.components[componentIndex],
-      page: pageOptions._id
+      page: pageOptions.page._id
     };
 
     // override component options
