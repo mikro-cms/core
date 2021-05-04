@@ -47,13 +47,14 @@ function servicePageGenerate(req, res, next) {
         })
       }
 
+      const pathView = `${res.locals.page.theme.theme_view}/${res.locals.page.variant}`;
       const VarsBind = {
         ...req.utils,
         ...res.locals,
         trans: res.trans
       };
 
-      res.render(res.locals.page.theme.theme_view, VarsBind);
+      res.render(pathView, VarsBind);
     });
   }
 }

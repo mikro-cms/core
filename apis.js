@@ -251,15 +251,32 @@ plugin.themeInfo = function (themeName) {
   const themePathRoot = path.resolve('node_modules', themeName);
   const themePathPackage = path.resolve(themePathRoot, 'package.json');
   const themePathOptions = path.resolve(themePathRoot, 'index.js');
-  const themePathView = path.resolve(themePathRoot, 'views/index.ejs');
+  const themePathView = path.resolve(themePathRoot, 'views');
   const themePathPublic = path.resolve(themePathRoot, 'public');
 
   if (!plugin.isFile(themePathPackage)) return false;
-  if (!plugin.isDirectory(themePathPublic)) return false;
   if (!plugin.isFile(themePathOptions)) return false;
-  if (!plugin.isFile(themePathView)) return false;
+  if (!plugin.isDirectory(themePathView)) return false;
+  if (!plugin.isDirectory(themePathPublic)) return false;
 
   const themePackage = require(themePathPackage);
+  const themeOptions = require(themePathOptions);
+  const themeComponents = [];
+
+  for (var variant in themeOptions) {
+    for (var componentIndex in themeOptions[variant]) {
+      const themePathVariant = path.resolve(themePathRoot, `views/${variant}.ejs`);
+
+      if (typeof themeOptions[variant][componentIndex].component_name === 'undefined') return false;
+      if (typeof themeOptions[variant][componentIndex].component_options === 'undefined') return false;
+      if (!plugin.isFile(themePathVariant)) return false;
+    }
+
+    themeComponents.push(variant);
+  }
+
+  // no component exists
+  if (themeComponents.length < 1) return false;
 
   const themeInfo = {
     'theme_name': themePackage.name,
@@ -271,7 +288,8 @@ plugin.themeInfo = function (themeName) {
     'theme_options': themePathOptions,
     'theme_view': themePathView,
     'theme_public_path': themePathPublic,
-    'theme_public_url': `/${process.env.PUBLIC_DIR}/${themePackage.name}`
+    'theme_public_url': `/${process.env.PUBLIC_DIR}/${themePackage.name}`,
+    'theme_components': themeComponents
   };
 
   return themeInfo;
@@ -336,10 +354,11 @@ plugin.createPage = async function (pageOptions) {
   const newPageOptions = {
     'page_url': pageOptions.page.page_url,
     'page_title': pageOptions.page.page_title,
-    'theme': selectedTheme._id
+    'theme': selectedTheme._id,
+    'variant': pageOptions.variant
   };
 
-  const newPage = models.page(newPageOptions);
+  const newPage = new models.page(newPageOptions);
 
   await newPage.save();
 
@@ -362,22 +381,18 @@ plugin.createPage = async function (pageOptions) {
 plugin.createComponents = async function (theme, pageOptions) {
   if (!plugin.isFile(theme.theme_options)) return false;
 
-  let themeOptions = require(theme.theme_options);
+  const themeOptions = require(theme.theme_options);
 
-  themeOptions = {
-    components: {},
-    ...themeOptions
-  }
+  if (typeof themeOptions[pageOptions.variant] === 'undefined') return false;
 
-  for (var componentIndex in themeOptions.components) {
-    let themeComponent = {
-      component_options: {},
-      ...themeOptions.components[componentIndex],
+  const components = themeOptions[pageOptions.variant];
+
+  for (var componentIndex in components) {
+    const themeComponent = {
+      ...components[componentIndex],
+      ...pageOptions.components[componentIndex],
       page: pageOptions.page._id
     };
-
-    // override component options
-    themeComponent.component_options = { ...themeComponent.component_options, ...pageOptions.components[componentIndex] };
 
     const newComponent = new models.component(themeComponent);
 

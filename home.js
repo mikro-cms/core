@@ -1,7 +1,7 @@
 /**
  * Home page data.
  */
-const page = {
+ const page = {
   'page_url': '/',
   'page_title': process.env.APP_NAME,
   'theme': {
@@ -19,6 +19,7 @@ const permission = {
 /**
  * Home page components.
  */
+const variant = 'default';
 const components = {
   'header': {
     'title': process.env.APP_NAME
@@ -28,5 +29,6 @@ const components = {
 module.exports = {
   page,
   permission,
+  variant,
   components
 };
