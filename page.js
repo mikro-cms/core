@@ -13,7 +13,18 @@ const utils = require('./utils');
 function servicePage(req, res, next) {
   if (req.error) return next();
 
-  modelPage.findOne({ page_url: req.originalUrl })
+  const pageUrls = [
+    { page_url: req.originalUrl }
+  ];
+
+  // intergration with single page application routing system
+  if (typeof req.params.pageName === 'undefined') {
+    pageUrls.push({ page_url: '/' + req.params[0] + '/*' });
+  } else {
+    pageUrls.push({ page_url: '/' + req.params.pageName + '/*' })
+  }
+
+  modelPage.findOne({ $or: pageUrls })
     .populate('theme')
     .exec(function (err, page) {
       if (err) {

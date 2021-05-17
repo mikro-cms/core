@@ -160,7 +160,7 @@ function handlePage() {
     generate.page
   ];
 
-  pageRouter.all('/*', handler);
+  pageRouter.all('/:pageName?/*', handler);
 }
 
 /**
