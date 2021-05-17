@@ -38,6 +38,16 @@ function utils(locals) {
     return `${process.env.APP_URL}${locals.page.theme.theme_public_url}${path}`;
   }
 
+  /**
+   * Create url by base url.
+   *
+   * @param   string
+   * @return  string
+   */
+  self.url = function (path) {
+    return `${process.env.APP_URL}${path}`;
+  }
+
   // make utils cache
   cachedUtils[locals.page._id] = self;
 
