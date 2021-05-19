@@ -220,7 +220,7 @@ plugin.apiInfo = function (apiName) {
   const apiInfo = {
     'api_name': apiName,
     'api_version': apiPackage.version,
-    'api_author': apiPackage.author,
+    'api_author': apiPackage.author.name,
     'api_url': apiPackage.homepage,
     'api_path': apiPathRoot,
     'api_info': apiPathPackage,
