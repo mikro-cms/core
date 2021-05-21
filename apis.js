@@ -242,19 +242,24 @@ plugin.apiInfo = function (apiName) {
 plugin.resourceInfo = function (apiInfo) {
   const resources = require(apiInfo.api_resource);
 
-  if (resources.constructor().toString() !== '[object Object]') return false;
+  if (resources.constructor.toString().indexOf("Object") < 0) return false;
 
   const resourceInfo = [];
 
   for (var resourceIndex in resources) {
     const resource = resources[resourceIndex];
 
-    resourceInfo.push({
-      'api': apiInfo._id,
-      'role': resource.permission.role,
-      'role_group': resource.permission.role_group,
-      'api_resource': resourceIndex
-    });
+    if (resource.constructor.toString().indexOf("Object") > -1) {
+      for (var resourceMethod in resource) {
+        resourceInfo.push({
+          'api': apiInfo._id,
+          'role': resource[resourceMethod].permission.role,
+          'role_group': resource[resourceMethod].permission.role_group,
+          'api_resource': resourceIndex,
+          'api_method': resourceMethod
+        });
+      }
+    }
   }
 
   return resourceInfo;
@@ -509,7 +514,9 @@ plugin.benchmarkApi = function (api) {
     const resourcePath = '/' + api.api_name + resourceIndex;
     const resource = resources[resourceIndex];
 
-    apiRouter[resource.method](resourcePath, resource.handler);
+    for (var resourceMethod in resource) {
+      apiRouter[resourceMethod](resourcePath, resource[resourceMethod].handler);
+    }
   }
 };
 
