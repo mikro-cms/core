@@ -29,7 +29,14 @@ function serviceApiGuard(req, res, next) {
   if (res.locals.session.user.role.role_group === 'guest') {
     apiPermission.role_group = res.locals.session.user.role.role_group;
   } else {
-    apiPermission.role = res.locals.session.user.role._id;
+    apiPermission.$or = [
+      { role: res.locals.session.user.role._id },
+      {
+        role_group: {
+          $regex: `.*${res.locals.session.user.role.role_group}.*`
+        }
+      }
+    ];
   }
 
   modelApiPermission.findOne(apiPermission)
@@ -65,7 +72,14 @@ function servicePageGuard(req, res, next) {
   if (res.locals.session.user.role.role_group === 'guest') {
     pagePermission.role_group = res.locals.session.user.role.role_group;
   } else {
-    pagePermission.role = res.locals.session.user.role._id;
+    apiPermission.$or = [
+      { role: res.locals.session.user.role._id },
+      {
+        role_group: {
+          $regex: `.*${res.locals.session.user.role.role_group}.*`
+        }
+      }
+    ];
   }
 
   modelPagePermission.findOne(pagePermission)
