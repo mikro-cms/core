@@ -29,7 +29,7 @@ function serviceApiGuard(req, res, next) {
   if (res.locals.session.user.role.role_group === 'guest') {
     apiPermission.role_group = res.locals.session.user.role.role_group;
   } else {
-    apiPermission.role = res.locals.session.user.role.role_id;
+    apiPermission.role = res.locals.session.user.role._id;
   }
 
   modelApiPermission.findOne(apiPermission)
@@ -65,7 +65,7 @@ function servicePageGuard(req, res, next) {
   if (res.locals.session.user.role.role_group === 'guest') {
     pagePermission.role_group = res.locals.session.user.role.role_group;
   } else {
-    pagePermission.role = res.locals.session.user.role.role_id;
+    pagePermission.role = res.locals.session.user.role._id;
   }
 
   modelPagePermission.findOne(pagePermission)
