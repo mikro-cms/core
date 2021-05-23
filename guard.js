@@ -13,7 +13,8 @@ function serviceApiGuard(req, res, next) {
   if (req.error) return next();
 
   let apiPermission = {
-    api: res.locals.api._id
+    api: res.locals.api._id,
+    api_method: req.method.toLowerCase()
   };
 
   if (typeof req.params.apiResource === 'string') {
