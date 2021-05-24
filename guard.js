@@ -12,13 +12,13 @@ const modelApiPermission = require('@mikro-cms/models/api-permission');
 function serviceApiGuard(req, res, next) {
   if (req.error) return next();
 
-  let apiPermission = {
-    api: res.locals.api._id,
-    api_method: req.method.toLowerCase()
-  };
+  let keyGuard = createKeyGuard(res.locals.session.user);
+
+  keyGuard.api = res.locals.api._id;
+  keyGuard.api_method = req.method.toLowerCase();
 
   if (typeof req.params.apiResource === 'string') {
-    apiPermission.api_resource = '/' + req.params.apiResource;
+    keyGuard.api_resource = '/' + req.params.apiResource;
   } else {
     req.status = 404;
     req.error = new Error(res.trans('exception.api_not_found'));
@@ -26,20 +26,7 @@ function serviceApiGuard(req, res, next) {
     return next();
   }
 
-  if (res.locals.session.user.role.role_group === 'guest') {
-    apiPermission.role_group = res.locals.session.user.role.role_group;
-  } else {
-    apiPermission.$or = [
-      { role: res.locals.session.user.role._id },
-      {
-        role_group: {
-          $regex: `.*${res.locals.session.user.role.role_group}.*`
-        }
-      }
-    ];
-  }
-
-  modelApiPermission.findOne(apiPermission)
+  modelApiPermission.findOne(keyGuard)
     .exec(function (err, permission) {
       if (err) {
         req.error = err;
@@ -65,24 +52,11 @@ function serviceApiGuard(req, res, next) {
 function servicePageGuard(req, res, next) {
   if (req.error) return next();
 
-  let pagePermission = {
-    page: res.locals.page._id
-  };
+  let keyGuard = createKeyGuard(res.locals.session.user);
 
-  if (res.locals.session.user.role.role_group === 'guest') {
-    pagePermission.role_group = res.locals.session.user.role.role_group;
-  } else {
-    apiPermission.$or = [
-      { role: res.locals.session.user.role._id },
-      {
-        role_group: {
-          $regex: `.*${res.locals.session.user.role.role_group}.*`
-        }
-      }
-    ];
-  }
+  keyGuard.page = res.locals.page._id;
 
-  modelPagePermission.findOne(pagePermission)
+  modelPagePermission.findOne(keyGuard)
     .exec(function (err, permission) {
       if (err) {
         req.error = err;
@@ -95,6 +69,32 @@ function servicePageGuard(req, res, next) {
 
       next();
     });
+}
+
+/**
+ * Create key guard query to find match permission.
+ *
+ * @private
+ * @param   object
+ * @return  object
+ */
+function createKeyGuard(userRole) {
+  const keyGuard = {};
+
+  if (userRole.role_group === 'guest') {
+    keyGuard.role_group = `(${userRole.role_group})`;
+  } else {
+    keyGuard.$or = [
+      { role: userRole._id },
+      {
+        role_group: {
+          $regex: `(${userRole.role_group})|(guest)`
+        }
+      }
+    ];
+  }
+
+  return keyGuard;
 }
 
 module.exports = {

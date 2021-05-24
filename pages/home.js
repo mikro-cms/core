@@ -13,7 +13,7 @@ const page = {
  * Page permission.
  */
 const permission = {
-  'role_group': 'guest'
+  'role_group': '(guest)'
 };
 
 /**
