@@ -82,18 +82,18 @@ function createKeyGuard(userRole) {
   const keyGuard = {};
 
   if (userRole.role_group === 'guest') {
-    keyGuard.role_group = `(${userRole.role_group})`;
+    keyGuard.role_group = `(${userRole.role.role_group})`;
   } else {
     keyGuard.$or = [
-      { role: userRole._id },
+      { role: userRole.role._id },
       {
         role_group: {
-          $regex: `(${userRole.role_group})|(guest)`
+          $regex: `(${userRole.role.role_group})|(guest)`
         }
       }
     ];
   }
-
+console.log(keyGuard.$or)
   return keyGuard;
 }
 
