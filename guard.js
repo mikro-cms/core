@@ -81,7 +81,7 @@ function servicePageGuard(req, res, next) {
 function createKeyGuard(userRole) {
   const keyGuard = {};
 
-  if (userRole.role_group === 'guest') {
+  if (userRole.role.role_group === 'guest') {
     keyGuard.role_group = `(${userRole.role.role_group})`;
   } else {
     keyGuard.$or = [
@@ -93,7 +93,7 @@ function createKeyGuard(userRole) {
       }
     ];
   }
-console.log(keyGuard.$or)
+
   return keyGuard;
 }
 
