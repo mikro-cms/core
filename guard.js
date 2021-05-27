@@ -88,7 +88,7 @@ function createKeyGuard(userRole) {
       { role: userRole.role._id },
       {
         role_group: {
-          $regex: `(${userRole.role.role_group})|(guest)`
+          $regex: `(${userRole.role.role_group})|(guest)|(member)`
         }
       }
     ];
