@@ -395,7 +395,7 @@ plugin.createPage = async function (pageOptions) {
   const themeOptions = {};
 
   if (pageOptions.theme.theme_id) {
-    themeOptions.theme_id = pageOptions.page.theme.theme_id;
+    themeOptions._id = pageOptions.page.theme.theme_id;
   } else {
     themeOptions.theme_name = pageOptions.page.theme.theme_name;
   }
