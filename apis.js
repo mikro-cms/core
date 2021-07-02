@@ -392,9 +392,15 @@ plugin.isDirectory = function (pathDir) {
  * @return  boolean
  */
 plugin.createPage = async function (pageOptions) {
-  const selectedTheme = await models.theme.findOne({
-    theme_name: pageOptions.page.theme.theme_name
-  });
+  const themeOptions = {};
+
+  if (pageOptions.theme.theme_id) {
+    themeOptions.theme_id = pageOptions.page.theme.theme_id;
+  } else {
+    themeOptions.theme_name = pageOptions.page.theme.theme_name;
+  }
+
+  const selectedTheme = await models.theme.findOne(themeOptions);
 
   if (selectedTheme === null) return false;
 
