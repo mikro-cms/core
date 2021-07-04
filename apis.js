@@ -388,13 +388,13 @@ plugin.isDirectory = function (pathDir) {
  * Create a new page.
  *
  * @public
- * @param   string
- * @return  boolean
+ * @param   object
+ * @return  mixed
  */
 plugin.createPage = async function (pageOptions) {
   const themeOptions = {};
 
-  if (pageOptions.theme.theme_id) {
+  if (pageOptions.page.theme.theme_id) {
     themeOptions._id = pageOptions.page.theme.theme_id;
   } else {
     themeOptions.theme_name = pageOptions.page.theme.theme_name;
@@ -420,7 +420,58 @@ plugin.createPage = async function (pageOptions) {
   await plugin.createComponents(selectedTheme, pageOptions);
   await plugin.createPagePermission(pageOptions);
 
-  return true;
+  return pageOptions;
+};
+
+/**
+ * Edit selected page.
+ *
+ * @public
+ * @param   object
+ * @return  mixed
+ */
+plugin.editPage = async function (pageOptions) {
+  const selectedPage = await models.page.findOne({
+    _id: pageOptions.page.page_id
+  });
+
+  if (selectedPage === null) return false;
+
+  if (pageOptions.page.theme.theme_id || pageOptions.page.theme.theme_name) {
+    const themeOptions = {};
+
+    if (pageOptions.page.theme.theme_id) {
+      themeOptions._id = pageOptions.page.theme.theme_id;
+    } else {
+      themeOptions.theme_name = pageOptions.page.theme.theme_name;
+    }
+
+    const selectedTheme = await models.theme.findOne(themeOptions);
+
+    if (selectedTheme === null) return false;
+
+    selectedPage.theme = selectedTheme._id;
+  }
+
+  if (pageOptions.page.page_url) {
+    selectedPage.page_url = pageOptions.page.page_url;
+  }
+
+  if (pageOptions.page.page_title) {
+    selectedPage.page_title = pageOptions.page.page_title;
+  }
+
+  if (pageOptions.variant) {
+    selectedPage.variant = pageOptions.variant;
+  }
+
+  await selectedPage.save();
+
+  pageOptions.page = selectedPage;
+
+  await plugin.editPagePermission(pageOptions);
+
+  return pageOptions;
 };
 
 /**
@@ -441,11 +492,20 @@ plugin.createComponents = async function (theme, pageOptions) {
   const components = themeOptions[pageOptions.variant];
 
   for (var componentIndex in components) {
-    const themeComponent = {
-      ...components[componentIndex],
-      ...pageOptions.components[componentIndex],
-      page: pageOptions.page._id
-    };
+    let themeComponent = {};
+
+    if (typeof pageOptions.components[componentIndex] !== 'undefined') {
+      themeComponent = {
+        ...components[componentIndex],
+        ...pageOptions.components[componentIndex]
+      };
+    } else {
+      themeComponent = {
+        ...components[componentIndex]
+      };
+    }
+
+    themeComponent.page = pageOptions.page._id;
 
     const newComponent = new models.component(themeComponent);
 
@@ -486,6 +546,30 @@ plugin.createPagePermission = async function (pageOptions) {
 
   return true;
 };
+
+/**
+ * Edit selected page permission.
+ *
+ * @param   object
+ * @return  boolean
+ */
+plugin.editPagePermission = async function (pageOptions) {
+  const selectedPermission = await models.pagePermission.findOne({
+    page: pageOptions.page._id
+  });
+
+  if (pageOptions.permission.role || pageOptions.permission.role === null) {
+    selectedPermission.role = pageOptions.permission.role;
+  }
+
+  if (pageOptions.permission.role_group) {
+    selectedPermission.role_group = pageOptions.permission.role_group;
+  }
+
+  await selectedPermission.save();
+
+  return true;
+}
 
 /**
  * Load all available apis.
