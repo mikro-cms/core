@@ -21,6 +21,8 @@ function serviceAuth(req, res, next) {
     token = req.cookies['token'];
   } else if (req.get('Authorization')) {
     token = req.get('Authorization');
+  } else if (req.query['token']) {
+    token = req.query['token'];
   } else {
     // set as guest user
     res.locals.session = guestUser();
