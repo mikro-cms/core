@@ -301,10 +301,14 @@ plugin.themeInfo = function (themeName) {
   const themePathView = path.resolve(themePathRoot, 'views');
   const themePathPublic = path.resolve(themePathRoot, 'public');
 
+  let themePathCustomize = path.resolve(themePathRoot, 'views/customize.ejs');
+
   if (!plugin.isFile(themePathPackage)) return false;
   if (!plugin.isFile(themePathOptions)) return false;
   if (!plugin.isDirectory(themePathView)) return false;
   if (!plugin.isDirectory(themePathPublic)) return false;
+
+  if (!plugin.isFile(themePathCustomize, false)) themePathCustomize = null;
 
   const themePackage = require(themePathPackage);
   const themeOptions = require(themePathOptions);
@@ -334,6 +338,7 @@ plugin.themeInfo = function (themeName) {
     'theme_info': themePathPackage,
     'theme_options': themePathOptions,
     'theme_view': themePathView,
+    'theme_customize': themePathCustomize,
     'theme_public_path': themePathPublic,
     'theme_public_url': `/${process.env.PUBLIC_DIR}/${themePackage.name}`,
     'theme_components': themeComponents
@@ -347,15 +352,16 @@ plugin.themeInfo = function (themeName) {
  *
  * @public
  * @param   string
+ * @param   boolean
  * @return  boolean
  */
-plugin.isFile = function (pathFile) {
+plugin.isFile = function (pathFile, showError = true) {
   try {
     const stat = fs.statSync(pathFile);
 
     if (!stat.isFile()) throw new Error(pathFile + ' is not file')
   } catch (err) {
-    console.error(err);
+    if (showError) console.error(err);
 
     return false;
   }
@@ -368,15 +374,16 @@ plugin.isFile = function (pathFile) {
  *
  * @public
  * @param   string
+ * @param   boolean
  * @return  boolean
  */
-plugin.isDirectory = function (pathDir) {
+plugin.isDirectory = function (pathDir, showError = true) {
   try {
     const stat = fs.statSync(pathDir);
 
     if (!stat.isDirectory()) throw new Error(pathDir + ' is not directory')
   } catch (err) {
-    console.error(err);
+    if (showError) console.error(err);
 
     return false;
   }
