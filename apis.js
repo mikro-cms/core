@@ -135,7 +135,7 @@ async function createDefaultPages() {
  */
 function handleApi() {
   const handler = [
-    locale,
+    locale.handler,
     auth,
     clientApi,
     guard.api,
@@ -153,7 +153,7 @@ function handleApi() {
  */
 function handlePage() {
   const handler = [
-    locale,
+    locale.handler,
     auth,
     page,
     guard.page,
@@ -209,10 +209,12 @@ plugin.apiInfo = function (apiName) {
   const apiPathRoot = path.resolve('node_modules', apiName);
   const apiPathPackage = path.resolve(apiPathRoot, 'package.json');
   const apiPathOptions = path.resolve(apiPathRoot, 'index.js');
+  let apiPathLocale = path.resolve(apiPathRoot, 'locale/index.js');
   const apiPathResource = path.resolve(apiPathRoot, 'resource/index.js');
 
   if (!plugin.isFile(apiPathPackage)) return false;
   if (!plugin.isFile(apiPathOptions)) return false;
+  if (!plugin.isFile(apiPathLocale, false)) apiPathLocale = null;
   if (!plugin.isFile(apiPathResource)) return false;
 
   const apiPackage = require(apiPathPackage);
@@ -224,7 +226,8 @@ plugin.apiInfo = function (apiName) {
     'api_url': apiPackage.homepage,
     'api_path': apiPathRoot,
     'api_info': apiPathPackage,
-    'api_path_options': apiPathOptions,
+    'api_options': apiPathOptions,
+    'api_locale': apiPathLocale,
     'api_resource': apiPathResource
   };
 
@@ -298,16 +301,16 @@ plugin.themeInfo = function (themeName) {
   const themePathRoot = path.resolve('node_modules', themeName);
   const themePathPackage = path.resolve(themePathRoot, 'package.json');
   const themePathOptions = path.resolve(themePathRoot, 'index.js');
+  let themePathLocale = path.resolve(themePathRoot, 'locale/index.js');
   const themePathView = path.resolve(themePathRoot, 'views');
   const themePathPublic = path.resolve(themePathRoot, 'public');
-
   let themePathCustomize = path.resolve(themePathRoot, 'views/customize.ejs');
 
   if (!plugin.isFile(themePathPackage)) return false;
   if (!plugin.isFile(themePathOptions)) return false;
+  if (!plugin.isFile(themePathLocale)) themePathLocale = null;
   if (!plugin.isDirectory(themePathView)) return false;
   if (!plugin.isDirectory(themePathPublic)) return false;
-
   if (!plugin.isFile(themePathCustomize, false)) themePathCustomize = null;
 
   const themePackage = require(themePathPackage);
@@ -337,6 +340,7 @@ plugin.themeInfo = function (themeName) {
     'theme_path': themePathRoot,
     'theme_info': themePathPackage,
     'theme_options': themePathOptions,
+    'theme_locale': themePathLocale,
     'theme_view': themePathView,
     'theme_customize': themePathCustomize,
     'theme_public_path': themePathPublic,
@@ -585,8 +589,7 @@ plugin.editPagePermission = async function (pageOptions) {
  * @return    void
  */
 plugin.loadApis = async function () {
-  const apis = await models.api.find()
-    .exec();
+  const apis = await models.api.find();
 
   if (apis === null) {
     console.log('bootstrap successful without apis!');
@@ -605,6 +608,10 @@ plugin.loadApis = async function () {
  * @return  void
  */
 plugin.benchmarkApi = function (api) {
+  if (api.api_locale !== null) {
+    locale.addLocale(api.api_locale);
+  }
+
   const resources = require(api.api_resource);
 
   for (var resourceIndex in resources) {
@@ -624,9 +631,7 @@ plugin.benchmarkApi = function (api) {
  * @return    void
  */
 plugin.loadPages = async function () {
-  const pages = await models.page.find()
-    .populate('theme')
-    .exec();
+  const pages = await models.page.find().populate('theme')
 
   if (pages === null) {
     console.log('bootstrap successful without pages!');
@@ -645,6 +650,10 @@ plugin.loadPages = async function () {
  * @return  void
  */
 plugin.benchmarkPage = function (page) {
+  if (page.theme.theme_locale !== null) {
+    locale.addLocale(page.theme.theme_locale);
+  }
+
   plugin.registerPublic(page.theme.theme_public_url, page.theme.theme_public_path);
 };
 

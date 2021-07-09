@@ -1,6 +1,34 @@
 const supportedLanguage = require(process.cwd() + '/locale');
 
 /**
+ * Add supported locale.
+ *
+ * @public
+ * @param   string
+ * @return  void
+ */
+function addLocale(pathLocale) {
+  const language = require(pathLocale);
+
+  for (var languageCode in language) {
+    if (typeof supportedLanguage[languageCode] === 'undefined') {
+      supportedLanguage[languageCode] = {};
+    }
+
+    for (var languageId in language[languageCode]) {
+      if (typeof supportedLanguage[languageCode][languageId] === 'undefined') {
+        supportedLanguage[languageCode][languageId] = language[languageCode][languageId];
+      } else {
+        supportedLanguage[languageCode][languageId] = {
+          ...supportedLanguage[languageCode][languageId],
+          ...language[languageCode][languageId]
+        };
+      }
+    }
+  }
+}
+
+/**
  * Locale request handler.
  *
  * @public
@@ -9,8 +37,8 @@ const supportedLanguage = require(process.cwd() + '/locale');
  * @param   next
  * @return  void
  */
-function locale(req, res, next) {
-  const acceptedLanguage = getAccepetedLanguage(req.header('Accept-Language'));
+function handler(req, res, next) {
+  const acceptedLanguage = getAccepetedLanguage(req.header('Accept-Language') || 'en-US,en;');
 
   res.trans = function (key) {
     return trans(acceptedLanguage, key);
@@ -96,4 +124,7 @@ function trans(acceptedLanguage, key) {
   }
 }
 
-module.exports = locale;
+module.exports = {
+  addLocale,
+  handler
+};
