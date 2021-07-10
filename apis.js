@@ -676,6 +676,59 @@ plugin.registerPublic = function (pathURL, pathDir) {
 };
 
 /**
+ * Create a new label.
+ *
+ * @public
+ * @param   object
+ * @return  mixed
+ */
+plugin.createLabel = async function (labelOptions) {
+  const label = await models.label.findOne({ label_name: labelOptions.label_name });
+
+  if (label) return false;
+
+  const newLabel = new models.label({
+    'created_by': labelOptions.created_by,
+    'label_name': labelOptions.label_name
+  });
+
+  await newLabel.save();
+
+  return newLabel;
+};
+
+/**
+ * Create a new post.
+ *
+ * @public
+ * @param   object
+ * @return  mixed
+ */
+plugin.createPost = async function (postOptions) {
+  const newPost = new models.post({
+    'created_by': postOptions.created_by,
+    'post_title': postOptions.post_title,
+    'post_content': postOptions.post_content,
+    'post_status': postOptions.post_status,
+    'post_options': postOptions.post_options
+  });
+
+  await newPost.save();
+
+  const newPostLabel = new models.postLabel({
+    'post': newPost._id,
+    'label': postOptions.label
+  });
+
+  await newPostLabel.save();
+
+  return {
+    post: newPost,
+    post_label: newPostLabel
+  };
+};
+
+/**
  * Complete setup system.
  *
  * @public
