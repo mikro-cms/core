@@ -182,6 +182,12 @@ plugin.importApi = async function (apiName) {
     return false;
   }
 
+  const apiOptions = require(apiInfo.api_options);
+
+  if (typeof apiOptions.migration === 'function') {
+    await apiOptions.migration();
+  }
+
   const newApi = new models.api(apiInfo);
 
   await newApi.save();
