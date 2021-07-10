@@ -308,7 +308,7 @@ plugin.themeInfo = function (themeName) {
 
   if (!plugin.isFile(themePathPackage)) return false;
   if (!plugin.isFile(themePathOptions)) return false;
-  if (!plugin.isFile(themePathLocale)) themePathLocale = null;
+  if (!plugin.isFile(themePathLocale, false)) themePathLocale = null;
   if (!plugin.isDirectory(themePathView)) return false;
   if (!plugin.isDirectory(themePathPublic)) return false;
   if (!plugin.isFile(themePathCustomize, false)) themePathCustomize = null;
