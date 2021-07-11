@@ -188,6 +188,16 @@ plugin.importApi = async function (apiName) {
     await apiOptions.migration();
   }
 
+  if (typeof apiOptions.upload === 'object') {
+    for (var dirIndex in apiOptions.upload) {
+      apiOptions.upload[dirIndex] = path.resolve(`${process.env.PUBLIC_DIR}/upload`, apiOptions.upload[dirIndex]);
+
+      await plugin.createDirectory(apiOptions.upload[dirIndex]);
+    }
+
+    apiInfo.api_upload = apiOptions.upload;
+  }
+
   const newApi = new models.api(apiInfo);
 
   await newApi.save();
@@ -400,6 +410,19 @@ plugin.isDirectory = function (pathDir, showError = true) {
 
   return true;
 };
+
+/**
+ * Create directory.
+ *
+ * @public
+ * @param     string
+ * @return    void
+ */
+ plugin.createDirectory = async function (pathDirectory) {
+  await fs.mkdir(pathDirectory, { recursive: true }, function (err) {
+    if (err) console.error(err)
+  });
+}
 
 /**
  * Create a new page.
