@@ -733,21 +733,14 @@ plugin.createPost = async function (postOptions) {
     'post_title': postOptions.post_title,
     'post_content': postOptions.post_content,
     'post_status': postOptions.post_status,
-    'post_options': postOptions.post_options
+    'post_options': postOptions.post_options,
+    'label': postOptions.label
   });
 
   await newPost.save();
 
-  const newPostLabel = new models.postLabel({
-    'post': newPost._id,
-    'label': postOptions.label
-  });
-
-  await newPostLabel.save();
-
   return {
-    post: newPost,
-    post_label: newPostLabel
+    post: newPost
   };
 };
 
