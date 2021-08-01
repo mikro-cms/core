@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const express = require('express');
+const express = require('./express');
 const locale = require('./locale');
 const clientApi = require('./client-api');
 const page = require('./page');
@@ -15,26 +15,6 @@ const defaultPages = require('./pages/index.js');
 const models = require('@mikro-cms/models');
 
 /**
- * Express app instance.
- */
-let app = null;
-
-// Express router
-const apiRouter = express.Router();
-const pageRouter = express.Router();
-
-/**
- * Set current express app instance.
- *
- * @public
- * @param   object    express app instance
- * @return  void
- */
-function setInstance(currentInstance) {
-  app = currentInstance;
-}
-
-/**
  * Bootstraping system pages.
  *
  * @public
@@ -43,7 +23,7 @@ function setInstance(currentInstance) {
  * @return  void
  */
 async function bootstrap(app, cb) {
-  setInstance(app);
+  express.setInstance(app);
 
   const migrateStatus = await models.migration.migrate();
 
@@ -62,8 +42,8 @@ async function bootstrap(app, cb) {
   await plugin.loadApis();
   await plugin.loadPages();
 
-  app.use(process.env.API_PREFIX, apiRouter);
-  app.use('/', pageRouter);
+  express.use(process.env.API_PREFIX, express.apiRouter);
+  express.use('/', express.pageRouter);
   cb();
 }
 
@@ -142,7 +122,7 @@ function handleApi() {
     generate.api
   ];
 
-  apiRouter.all('/:apiName/:apiVersion/:apiResource', handler);
+  express.apiRouter.all('/:apiName/:apiVersion/:apiResource', handler);
 }
 
 /**
@@ -160,7 +140,7 @@ function handlePage() {
     generate.page
   ];
 
-  pageRouter.all('/:pageName?/*', handler);
+  express.pageRouter.all('/:pageName?/*', handler);
 }
 
 /**
@@ -648,7 +628,17 @@ plugin.benchmarkApi = function (api) {
     const resource = resources[resourceIndex];
 
     for (var resourceMethod in resource) {
-      apiRouter[resourceMethod](resourcePath, resource[resourceMethod].handler);
+      let handler = [];
+
+      if (typeof resource[resourceMethod].handler === 'function') {
+        handler.push(resource[resourceMethod].handler);
+      } else if (typeof resource[resourceMethod].handler === 'object') {
+        handler = resource[resourceMethod].handler;
+      }
+
+      handler.push(generate.resource);
+
+      express.apiRouter[resourceMethod](resourcePath, handler);
     }
   }
 };
@@ -683,19 +673,7 @@ plugin.benchmarkPage = function (page) {
     locale.addLocale(page.theme.theme_locale);
   }
 
-  plugin.registerPublic(page.theme.theme_public_url, page.theme.theme_public_path);
-};
-
-/**
- * Register public resource.
- *
- * @public
- * @param   string
- * @param   string
- * @return  void
- */
-plugin.registerPublic = function (pathURL, pathDir) {
-  app.use(pathURL, express.static(pathDir));
+  express.public(page.theme.theme_public_url, page.theme.theme_public_path);
 };
 
 /**

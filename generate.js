@@ -7,6 +7,7 @@ const component = require('@mikro-cms/models/component');
  * @param   request
  * @param   response
  * @param   next
+ * @return  void
  */
 function serviceApiGenerate(req, res, next) {
   if (req.error) {
@@ -20,12 +21,27 @@ function serviceApiGenerate(req, res, next) {
 }
 
 /**
+ * Generate resource service to compile requested api resource result to response json.
+ *
+ * @public
+ * @param     object
+ * @param     object
+ * @param     mixed
+ * @return    void
+ */
+function serviceResourceGenerate(req, res, next) {
+  res.status(res.result.status || 200)
+    .json(res.result);
+}
+
+/**
  * Generate page service to compile requested page with components.
  *
  * @public
  * @param   request
  * @param   response
  * @param   next
+ * @return  void
  */
 function servicePageGenerate(req, res, next) {
   if (req.error) {
@@ -44,7 +60,7 @@ function servicePageGenerate(req, res, next) {
 
         components.forEach(function (component) {
           res.locals.components[component.component_name] = component;
-        })
+        });
       }
 
       const pathView = `${res.locals.page.theme.theme_view}/${res.locals.page.variant}`;
@@ -61,5 +77,6 @@ function servicePageGenerate(req, res, next) {
 
 module.exports = {
   api: serviceApiGenerate,
+  resource: serviceResourceGenerate,
   page: servicePageGenerate
 };
