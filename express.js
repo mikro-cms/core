@@ -1,3 +1,4 @@
+const { exists } = require('@mikro-cms/models/component');
 const express = require('express');
 
 /**
@@ -55,11 +56,88 @@ function public(pathURL, pathDir) {
   app.use(pathURL, express.static(pathDir));
 }
 
+/**
+ * Create api loader for client request.
+ *
+ * @public
+ * @param     object
+ * @param     object
+ * @return    function
+ */
+function api(req, res) {
+  /**
+   * Create resource loader for selected api.
+   *
+   * @param   string
+   * @return  mixed
+   */
+  return function apiLoader(apiName) {
+    let resources;
+
+    try {
+      resources = require(`${apiName}/resource`);
+
+      if (typeof resources !== 'object') {
+        throw new Error(`could not load api without resource ${apiName}`);
+      }
+    } catch (err) {
+      throw err;
+    }
+
+    /**
+     * Execute api resource.
+     *
+     * @param   string
+     * @return  mixed
+     */
+    return async function apiExecute(resourceName) {
+      let resource = resources[resourceName];
+
+      if (typeof resource.get === 'undefined') {
+        throw new Error(`could not load api without get method ${apiName}`);
+      } else if (typeof resource.get.handler === 'undefined') {
+        throw new Error(`could not load api without handler ${apiName}`);
+      } else {
+        resource = resource.get.handler;
+      }
+
+      if (typeof resource === 'function') {
+        return resource.call({}, req, res);
+      } else if (typeof resource === 'object') {
+        let lastIndex = `${resource.length - 2}`;
+
+        for (var resourceIndex in resource) {
+          if (resourceIndex === lastIndex) break;
+
+          resource[resourceIndex].call({}, req, res, apiNext);
+        }
+
+        await resource[lastIndex].call({}, req, res, apiNext);
+
+        return res.result;
+      } else {
+        return null;
+      }
+    }
+  }
+}
+
+/**
+ * Api next handler.
+ *
+ * @private
+ * @return  void
+ */
+function apiNext() {
+  // no action
+}
+
 module.exports = {
   apiRouter,
   pageRouter,
   setInstance,
   use,
   get,
-  public
+  public,
+  api
 };

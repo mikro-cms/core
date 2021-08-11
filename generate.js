@@ -1,4 +1,5 @@
 const component = require('@mikro-cms/models/component');
+const express = require('@mikro-cms/core/express');
 
 /**
  * Generate api service to compile requested api.
@@ -50,7 +51,7 @@ function servicePageGenerate(req, res, next) {
   } else {
     component.find({
       page: res.locals.page._id
-    }).exec(function (err, components) {
+    }).exec(async function (err, components) {
       if (err) {
         res.send(err);
       } else if (components === null) {
@@ -63,11 +64,31 @@ function servicePageGenerate(req, res, next) {
         });
       }
 
+      const themeOptions = require(res.locals.page.theme.theme_options);
+      const themeData = themeOptions[res.locals.page.variant].data || undefined;
+
+      let dataView = null;
+
+      if (typeof themeData !== 'undefined') {
+        try {
+          dataView = await themeData.call({
+            req: req,
+            res: res,
+            api: express.api(req, res)
+          });
+        } catch (err) {
+          next(err);
+
+          return;
+        }
+      }
+
       const pathView = `${res.locals.page.theme.theme_view}/${res.locals.page.variant}`;
       const VarsBind = {
         ...req.utils,
         ...res.locals,
-        trans: res.trans
+        trans: res.trans,
+        data: dataView
       };
 
       res.render(pathView, VarsBind);

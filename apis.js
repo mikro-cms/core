@@ -514,6 +514,8 @@ plugin.createComponents = async function (theme, pageOptions) {
   for (var componentIndex in components) {
     let themeComponent = {};
 
+    if (componentIndex === 'data') continue;
+
     if (typeof pageOptions.components[componentIndex] !== 'undefined') {
       themeComponent = {
         ...components[componentIndex],
