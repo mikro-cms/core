@@ -315,6 +315,8 @@ plugin.themeInfo = function (themeName) {
 
   for (var variant in themeOptions) {
     for (var componentIndex in themeOptions[variant]) {
+      if (componentIndex === 'data') continue;
+
       const themePathVariant = path.resolve(themePathRoot, `views/${variant}.ejs`);
 
       if (typeof themeOptions[variant][componentIndex].component_name === 'undefined') return false;
