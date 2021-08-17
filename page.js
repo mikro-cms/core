@@ -19,7 +19,8 @@ function servicePage(req, res, next) {
 
   // intergration with single page application routing system
   if (typeof req.params.pageName === 'undefined') {
-    pageUrls.push({ page_url: '/' + req.params[0] + '/*' });
+    pageUrls.push({ page_url: '/' });
+    pageUrls.push({ page_url: '/*' });
   } else {
     pageUrls.push({ page_url: '/' + req.params.pageName + '/*' })
   }
