@@ -1,4 +1,3 @@
-const { exists } = require('@mikro-cms/models/component');
 const express = require('express');
 
 /**
