@@ -52,7 +52,9 @@ function get(path) {
  * @return  void
  */
 function public(pathURL, pathDir) {
-  app.use(pathURL, express.static(pathDir));
+  app.use(pathURL, express.static(pathDir, {
+    maxAge: app.get('env') === 'production' ? process.env.PUBLIC_MAX_AGE : '0'
+  }));
 }
 
 /**
