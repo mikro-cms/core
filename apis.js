@@ -7,9 +7,6 @@ const page = require('./page');
 const auth = require('./auth');
 const guard = require('./guard');
 const generate = require('./generate');
-const defaultThemes = require('./themes/index.js');
-const defaultApis = require('./apis/index.js');
-const defaultPages = require('./pages/index.js');
 
 // load models for initial availbility
 const models = require('@mikro-cms/models');
@@ -25,17 +22,6 @@ const models = require('@mikro-cms/models');
 async function bootstrap(app, cb) {
   express.setInstance(app);
 
-  const migrateStatus = await models.migration.migrate();
-
-  // first time migration also initial system setup
-  if (migrateStatus === null) {
-    if (!await importDefaultApis()) return;
-    if (!await importDefaultThemes()) return;
-    if (!await createDefaultPages()) return;
-
-    await plugin.setupComplete();
-  }
-
   handleApi();
   handlePage();
 
@@ -45,66 +31,6 @@ async function bootstrap(app, cb) {
   express.use(process.env.API_PREFIX, express.apiRouter);
   express.use('/', express.pageRouter);
   cb();
-}
-
-/**
- * Import default themes.
- *
- * @private
- * @return    boolean
- */
-async function importDefaultApis() {
-  for (var defaultApi of defaultApis) {
-    const importDefaultApi = await plugin.importApi(defaultApi);
-
-    if (!importDefaultApi) {
-      console.log('bootstrap could not found api!');
-
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Import default themes.
- *
- * @private
- * @return    boolean
- */
-async function importDefaultThemes() {
-  for (var defaultTheme of defaultThemes) {
-    const importDefaultTheme = await plugin.importTheme(defaultTheme);
-
-    if (!importDefaultTheme) {
-      console.log('bootstrap could not found theme!');
-
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/**
- * Create default pages.
- *
- * @private
- * @return    boolean
- */
-async function createDefaultPages() {
-  for (var pageOptions of defaultPages) {
-    const createdPage = await plugin.createPage(pageOptions);
-
-    if (!createdPage) {
-      console.log('bootstrap could not create default page!');
-
-      return false;
-    }
-  }
-
-  return true;
 }
 
 /**
