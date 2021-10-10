@@ -79,13 +79,13 @@ const plugin = {};
  *
  * @public
  * @param   string
- * @return  boolean
+ * @return  mixed
  */
 plugin.importApi = async function (apiName) {
   const apiInfo = plugin.apiInfo(apiName);
 
-  if (!apiInfo) {
-    return false;
+  if (apiInfo instanceof Error) {
+    return apiInfo;
   }
 
   const apiOptions = require(apiInfo.api_options);
@@ -98,7 +98,9 @@ plugin.importApi = async function (apiName) {
     for (var dirIndex in apiOptions.upload) {
       apiOptions.upload[dirIndex] = path.resolve(`${process.env.PUBLIC_DIR}/upload`, apiOptions.upload[dirIndex]);
 
-      await plugin.createDirectory(apiOptions.upload[dirIndex]);
+      const createdApiDirectory = await plugin.createDirectory(apiOptions.upload[dirIndex]);
+
+      if (createdApiDirectory instanceof Error) return createdApiDirectory;
     }
 
     apiInfo.api_upload = apiOptions.upload;
@@ -110,9 +112,7 @@ plugin.importApi = async function (apiName) {
 
   const resources = plugin.resourceInfo(newApi);
 
-  if (!resources) {
-    return false;
-  }
+  if (resources instanceof Error) return resources;
 
   resources.forEach(plugin.createApiPermission);
 
@@ -134,10 +134,15 @@ plugin.apiInfo = function (apiName) {
   let apiPathLocale = path.resolve(apiPathRoot, 'locale/index.js');
   const apiPathResource = path.resolve(apiPathRoot, 'resource/index.js');
 
-  if (!plugin.isFile(apiPathPackage)) return false;
-  if (!plugin.isFile(apiPathOptions)) return false;
-  if (!plugin.isFile(apiPathLocale, false)) apiPathLocale = null;
-  if (!plugin.isFile(apiPathResource)) return false;
+  const isPackageFile = plugin.isFile(apiPathPackage);
+  const isOptionsFile = plugin.isFile(apiPathOptions);
+  const isLocaleFile = plugin.isFile(apiPathLocale);
+  const isResourceFile = plugin.isFile(apiPathResource);
+
+  if (isPackageFile instanceof Error) return isPackageFile;
+  if (isOptionsFile instanceof Error) return isOptionsFile;
+  if (isLocaleFile instanceof Error) apiPathLocale = null;
+  if (isResourceFile instanceof Error) return isResourceFile;
 
   const apiPackage = require(apiPathPackage);
 
@@ -167,7 +172,9 @@ plugin.apiInfo = function (apiName) {
 plugin.resourceInfo = function (apiInfo) {
   const resources = require(apiInfo.api_resource);
 
-  if (resources.constructor.toString().indexOf("Object") < 0) return false;
+  if (resources.constructor.toString().indexOf("Object") < 0) {
+    return new Error(`api resource is not valid structure ${apiInfo.api_resource}`);
+  }
 
   const resourceInfo = [];
 
@@ -195,14 +202,12 @@ plugin.resourceInfo = function (apiInfo) {
  *
  * @public
  * @param   string
- * @return  boolean
+ * @return  mixed
  */
 plugin.importTheme = async function (themeName) {
   const themeInfo = plugin.themeInfo(themeName);
 
-  if (!themeInfo) {
-    return false;
-  }
+  if (themeInfo instanceof Error) return themeInfo;
 
   const newTheme = new models.theme(themeInfo);
 
@@ -228,12 +233,19 @@ plugin.themeInfo = function (themeName) {
   const themePathPublic = path.resolve(themePathRoot, 'public');
   let themePathCustomize = path.resolve(themePathRoot, 'views/customize.ejs');
 
-  if (!plugin.isFile(themePathPackage)) return false;
-  if (!plugin.isFile(themePathOptions)) return false;
-  if (!plugin.isFile(themePathLocale, false)) themePathLocale = null;
-  if (!plugin.isDirectory(themePathView)) return false;
-  if (!plugin.isDirectory(themePathPublic)) return false;
-  if (!plugin.isFile(themePathCustomize, false)) themePathCustomize = null;
+  const isPackageFile = plugin.isFile(themePathPackage);
+  const isOptionsFile = plugin.isFile(themePathOptions);
+  const isLocaleFile = plugin.isFile(themePathLocale);
+  const isViewDirectory = plugin.isDirectory(themePathView);
+  const isPublicDirectory = plugin.isDirectory(themePathPublic);
+  const isCustomizeFile = plugin.isFile(themePathCustomize);
+
+  if (isPackageFile instanceof Error) return isPackageFile;
+  if (isOptionsFile instanceof Error) return isOptionsFile;
+  if (isLocaleFile instanceof Error) themePathLocale = null;
+  if (isViewDirectory instanceof Error) return isViewDirectory;
+  if (isPublicDirectory instanceof Error) return isPublicDirectory;
+  if (isCustomizeFile instanceof Error) themePathCustomize = null;
 
   const themePackage = require(themePathPackage);
   const themeOptions = require(themePathOptions);
@@ -245,16 +257,26 @@ plugin.themeInfo = function (themeName) {
 
       const themePathVariant = path.resolve(themePathRoot, `views/${variant}.ejs`);
 
-      if (typeof themeOptions[variant][componentIndex].component_name === 'undefined') return false;
-      if (typeof themeOptions[variant][componentIndex].component_options === 'undefined') return false;
-      if (!plugin.isFile(themePathVariant)) return false;
+      if (typeof themeOptions[variant][componentIndex].component_name === 'undefined') {
+        return new Error(`theme ${themeName} with variant ${variant} on index ${componentIndex} not have component name`);
+      }
+
+      if (typeof themeOptions[variant][componentIndex].component_options === 'undefined') {
+        return new Error(`theme ${themeName} with variant ${variant} on index ${componentIndex} not have component options`);
+      }
+
+      const isVariantFile = plugin.isFile(themePathVariant);
+
+      if (isVariantFile instanceof Error) return isVariantFile;
     }
 
     themeComponents.push(variant);
   }
 
   // no component exists
-  if (themeComponents.length < 1) return false;
+  if (themeComponents.length < 1) {
+    return new Error(`theme ${themeName} is not have components`);
+  }
 
   const themeInfo = {
     'theme_name': themePackage.name,
@@ -280,18 +302,15 @@ plugin.themeInfo = function (themeName) {
  *
  * @public
  * @param   string
- * @param   boolean
- * @return  boolean
+ * @return  mixed
  */
-plugin.isFile = function (pathFile, showError = true) {
+plugin.isFile = function (pathFile) {
   try {
     const stat = fs.statSync(pathFile);
 
     if (!stat.isFile()) throw new Error(pathFile + ' is not file')
   } catch (err) {
-    if (showError) console.error(err);
-
-    return false;
+    return err;
   }
 
   return true;
@@ -302,18 +321,15 @@ plugin.isFile = function (pathFile, showError = true) {
  *
  * @public
  * @param   string
- * @param   boolean
- * @return  boolean
+ * @return  mixed
  */
-plugin.isDirectory = function (pathDir, showError = true) {
+plugin.isDirectory = function (pathDir) {
   try {
     const stat = fs.statSync(pathDir);
 
     if (!stat.isDirectory()) throw new Error(pathDir + ' is not directory')
   } catch (err) {
-    if (showError) console.error(err);
-
-    return false;
+    return err;
   }
 
   return true;
@@ -324,12 +340,17 @@ plugin.isDirectory = function (pathDir, showError = true) {
  *
  * @public
  * @param     string
- * @return    void
+ * @return    mixed
  */
- plugin.createDirectory = async function (pathDirectory) {
+plugin.createDirectory = async function (pathDirectory) {
+  let resultCreatedDirectory = null;
+
   await fs.mkdir(pathDirectory, { recursive: true }, function (err) {
-    if (err) console.error(err)
+    if (err) resultCreatedDirectory = err;
+    else resultCreatedDirectory = true;
   });
+
+  return resultCreatedDirectory;
 }
 
 /**
@@ -350,7 +371,9 @@ plugin.createPage = async function (pageOptions) {
 
   const selectedTheme = await models.theme.findOne(themeOptions);
 
-  if (selectedTheme === null) return false;
+  if (selectedTheme === null) {
+    return new Eror(`page ${pageOptions.page_url} could not use invalid theme ${themeOptions.theme_name}`);
+  }
 
   const newPageOptions = {
     'page_url': pageOptions.page.page_url,
@@ -365,7 +388,10 @@ plugin.createPage = async function (pageOptions) {
 
   pageOptions.page = newPage;
 
-  await plugin.createComponents(selectedTheme, pageOptions);
+  const createdComponents = await plugin.createComponents(selectedTheme, pageOptions);
+
+  if (createdComponents instanceof Error) return createdComponents;
+
   await plugin.createPagePermission(pageOptions);
 
   return pageOptions;
@@ -383,7 +409,9 @@ plugin.editPage = async function (pageOptions) {
     _id: pageOptions.page.page_id
   });
 
-  if (selectedPage === null) return false;
+  if (selectedPage === null) {
+    return new Error(`could not edit invalid page ${pageOptions.page_url}`);
+  }
 
   if (pageOptions.page.theme.theme_id || pageOptions.page.theme.theme_name) {
     const themeOptions = {};
@@ -396,7 +424,9 @@ plugin.editPage = async function (pageOptions) {
 
     const selectedTheme = await models.theme.findOne(themeOptions);
 
-    if (selectedTheme === null) return false;
+    if (selectedTheme === null) {
+      return new Eror(`page ${pageOptions.page_url} could not use invalid theme ${themeOptions.theme_name}`);
+    }
 
     selectedPage.theme = selectedTheme._id;
   }
@@ -428,14 +458,18 @@ plugin.editPage = async function (pageOptions) {
  * @public
  * @param   object
  * @param   object
- * @return  void
+ * @return  mixed
  */
 plugin.createComponents = async function (theme, pageOptions) {
-  if (!plugin.isFile(theme.theme_options)) return false;
+  const isOptionsFile = plugin.isFile(theme.theme_options);
+
+  if (isOptionsFile instanceof Error) return isOptionsFile;
 
   const themeOptions = require(theme.theme_options);
 
-  if (typeof themeOptions[pageOptions.variant] === 'undefined') return false;
+  if (typeof themeOptions[pageOptions.variant] === 'undefined') {
+    return new Error(`page ${pageOptions.page_url} could not use invalid theme variant ${pageOptions.variant}`);
+  }
 
   const components = themeOptions[pageOptions.variant];
 
