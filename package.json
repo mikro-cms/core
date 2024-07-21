@@ -1,0 +1,27 @@
+{
+  "name": "@mikro-cms/core",
+  "version": "0.0.0",
+  "description": "Package core mikro-cms",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikro-cms/core.git"
+  },
+  "keywords": [
+    "mikro-cms"
+  ],
+  "author": "mikro-cms",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mikro-cms/core/issues"
+  },
+  "homepage": "https://github.com/mikro-cms/core#readme",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.10.3",
+    "sequelize": "^6.37.3"
+  }
+}
