@@ -13,7 +13,7 @@ Models contain all methods callable by our service and other models to process q
 - **model_name**: A unique name referring to our model.
 
 ```js
-function (db, schema, model) {
+function ({ env, db, schema, model }) {
   function migration() {
     // Define migrations here
   }
@@ -29,7 +29,8 @@ The model file exports a function that receives several parameters and returns a
 
 ### Parameters
 
-- **db**: The method to access the collection database connection has been initialized..
+- **env**: The object contains environment data.
+- **db**: The method to access the collection database connection has been initialized.
 - **schema**: The method to access the collection of schemas has been initialized.
 - **model**: The method to access the collection of models has been initialized.
 

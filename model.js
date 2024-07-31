@@ -26,25 +26,26 @@ function loadModels() {
         }
 
         try {
-          const modelInstance = model(
-            database.selectDatabase,
-            schema.selectSchema(moduleName),
-            selectModel(moduleName)
-          );
+          const modelInstance = model({
+            env: config.env,
+            db: database.selectDatabase,
+            schema: schema.selectSchema(moduleName),
+            model: selectModel(moduleName)
+          });
 
           if (typeof modelInstance !== 'object') {
-            throw new Error(`Invalid model for module "${moduleName}" and model "${modelName}"`);
+            throw new Error('invalid model');
           }
 
           if (typeof model.migration !== 'undefined') {
             if (typeof model.migration !== 'function') {
-              throw new Error(`Invalid migration for module "${moduleName}" and model "${modelName}"`);
+              throw new Error('invalid migration');
             }
           }
 
-          source[moduleName][modelName] = model;
+          source[moduleName][modelName] = modelInstance;
         } catch (err) {
-          throw new Error(err);
+          throw new Error(`Failed to parsing model for module "${moduleName}" and model "${modelName}" : ${err}`);
         }
       }
     }
@@ -62,11 +63,11 @@ function selectModel(srcModuleName) {
     if (typeof source[moduleName] === 'undefined') {
       throw new Error(`Could not find module "${moduleName}" in the model collection`);
     }
-  
+
     if (typeof source[moduleName][modelName] === 'undefined') {
       throw new Error(`Could not find model "${modelName}" in the model collection`);
     }
-  
+
     return source[moduleName][modelName];
   }
 }
@@ -80,10 +81,12 @@ function selectModel(srcModuleName) {
 function migrates() {
   for (var moduleName in source) {
     for (var modelName in source[moduleName]) {
-      try {
-        source[moduleName][modelName].migration();
-      } catch (err) {
-        throw new Error(err);
+      if (source[moduleName][modelName].migration) {
+        try {
+          source[moduleName][modelName].migration();
+        } catch (err) {
+          throw new Error(`migration faield "${moduleName}, ${modelName}" - ${err}`);
+        }
       }
     }
   }

@@ -1,10 +1,14 @@
 const config = require('./config');
 const model = require('./model');
 const locale = require('./locale');
+const middleware = require('./middleware');
 const router = require('./router');
 
 // All service of the module
 const source = {};
+
+// List of allowed HTTP service methods
+const methods = ['all', 'get', 'post', 'put', 'delete'];
 
 /**
  * Initializes services based on the provided configuration and adds them to
@@ -55,29 +59,33 @@ function loadServices() {
           source[moduleName][serviceIndex] = {};
 
           for (var endpoint in service.handler) {
-            const serviceHandler = service.handler[endpoint];
+            source[moduleName][serviceIndex][endpoint] = {};
 
-            if (typeof serviceHandler !== 'object') {
-              throw new Error(`Invalid service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint ${endpoint}`);
+            for (var method in service.handler[endpoint]) {
+              if (methods.indexOf(method) < 0) {
+                throw new Error(`Invalid method service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint "${endpoint}:${method}"`);
+              }
+
+              if (typeof service.handler[endpoint][method] !== 'function') {
+                throw new Error(`Invalid service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint "${endpoint}:${method}"`);
+              }
+
+              try {
+                source[moduleName][serviceIndex][endpoint][method] = service.handler[endpoint][method]({
+                  env: config.env,
+                  model: model.selectModel(moduleName),
+                  trans: locale.trans,
+                  middleware: middleware.selectMiddleware(moduleName)
+                });
+
+                router.source[routerModulename][routerEndpoint][method](
+                  endpoint,
+                  source[moduleName][serviceIndex][endpoint][method]
+                );
+              } catch (err) {
+                throw new Error(`Failed to parsing service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint "${endpoint}:${method}" : ${err}`);
+              }
             }
-
-            if (typeof serviceHandler.method !== 'string') {
-              throw new Error(`Invalid method service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint ${endpoint}`);
-            }
-
-            if (typeof serviceHandler.handler !== 'function') {
-              throw new Error(`Invalid service handler for module "${moduleName}" and service index "${serviceIndex}" and endpoint ${endpoint}`);
-            }
-
-            source[moduleName][serviceIndex][endpoint] = serviceHandler.handler(
-              model.selectModel(moduleName),
-              locale.trans
-            );
-
-            router.source[routerModulename][routerEndpoint][serviceHandler.method](
-              endpoint,
-              source[moduleName][serviceIndex][endpoint]
-            );
           }
         } catch (err) {
           throw new Error(err);

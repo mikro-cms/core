@@ -1,6 +1,7 @@
 const srcExpress = require('express');
 const coreExpress = require('./express');
 const config = require('./config');
+const locale = require('./locale');
 const middleware = require('./middleware');
 
 // All router instance of the module
@@ -26,7 +27,9 @@ function loadRouting() {
           throw new Error(`Invalid router for module "${moduleName}" and router "${endpoint}"`);
         }
 
-        const routerMiddleware = [];
+        const routerMiddleware = [
+          locale.middleware.acceptedLanguage
+        ];
 
         for (var selectedMiddleware of router) {
           if (typeof selectedMiddleware === 'string') {

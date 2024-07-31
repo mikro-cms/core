@@ -1,3 +1,6 @@
+// Contains all environment variables
+const env = {};
+
 // Contains all configuration settings for mikro-cms
 const source = {};
 
@@ -8,18 +11,33 @@ const source = {};
  * @return  void
  */
 function setConfig(conf) {
-  for (var moduleName in conf) {
+  if (typeof conf !== 'object') {
+    throw new Error('Invalid mikrocms config');
+  }
+
+  if (typeof conf.env === 'object') {
+    for (var name in conf.env) {
+      env[name] = conf.env[name];
+    }
+  }
+
+  if (typeof conf.modules !== 'object') {
+    throw new Error('Invalid module config');
+  }
+
+  for (var moduleName in conf.modules) {
     if (source[moduleName]) {
       throw new Error(`Duplicate module name: "${moduleName}"`);
     }
 
-    const mdul = conf[moduleName];
+    const mdul = conf.modules[moduleName];
 
     source[moduleName] = {
       database: null,
       schema: null,
       model: null,
       locale: null,
+      view: null,
       middleware: null,
       router: null,
       service: null,
@@ -46,6 +64,10 @@ function setConfig(conf) {
       source[moduleName].locale = mdul.locale;
     }
 
+    if (typeof mdul.view === 'object') {
+      source[moduleName].view = mdul.view;
+    }
+
     if (typeof mdul.middleware === 'object') {
       source[moduleName].middleware = mdul.middleware;
     }
@@ -65,6 +87,7 @@ function setConfig(conf) {
 }
 
 module.exports = {
+  env,
   source,
   setConfig
 };

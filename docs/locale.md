@@ -40,4 +40,16 @@ locale("en", "locale_id", {
 
 The locale will output: "Hi, my name is mikro-cms"
 
+## Accepted Languages
+
+The application determines the locale based on the "Accepted-Languages" header specified in the request. This allows for automatically selecting the appropriate language code for use in translations for the user.
+
+### req.trans
+
+This method is an alternative for translations that do not require a language code. You can simply pass a `locale_id` or use it with binding data.
+
+### req.transvalidator
+
+This method extracts error messages produced by Express Validator, including those that contain a `locale_id`.
+
 [⬅️ Back to Configuration](./configuration.md)

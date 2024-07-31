@@ -10,35 +10,51 @@ The important thing about the mikro-cms module is the default module. You must h
 
 ```js
 module.exports = {
-  "default": {
-    "database": {},
-    "schema": {},
-    "model": {},
-    "locale": {},
-    "middleware": {},
-    "router": {},
-    "service": [],
-    "public": {}
+  "modules": {
+    "default": {
+      "database": {},
+      "schema": {},
+      "model": {},
+      "locale": {},
+      "middleware": {},
+      "router": {},
+      "service": [],
+      "public": {}
+    }
   }
 }
 ```
 
 ## Configuration
 
-Configuration contains all the modules we have and passes them into mikro-cms initialization. The configuration can be stored in a separate file or included directly:
+Configuration includes environment settings and all the modules we have, and it is passed into the mikro-cms initialization. The configuration can be stored in a separate file or included directly:
 
 ```js
 module.exports = {
-  "module_name": {
-    "database": {},
-    "schema": {},
-    "model": {},
-    "locale": {},
-    "middleware": {},
-    "router": {},
-    "service": [],
-    "public": {}
+  "env": {},
+  "modules": {
+    "module_name": {
+      "database": {},
+      "schema": {},
+      "model": {},
+      "locale": {},
+      "view": [],
+      "middleware": {},
+      "router": {},
+      "service": [],
+      "public": {}
+    }
   }
+}
+```
+
+### Environment Configuration
+
+Shared data configuration involves managing and accessing configuration data across different parts of an application or across multiple modules. Environment variables are commonly used to store configuration data that needs to be shared.
+
+```js
+"env": {
+  // all environment variables
 }
 ```
 
@@ -78,7 +94,7 @@ The schema configuration defines the structure of your database tables using Seq
 Schema file:
 
 ```js
-function (DataTypes) {
+function ({ DataTypes }) {
   return {
     attributes: {
       // defining the fields of the model
@@ -104,7 +120,7 @@ Models contain all methods callable by our service and other models to process q
 Model file:
 
 ```js
-function (db, schema, model) {
+function ({ env, db, schema, model }) {
   function migration() {
     // Define migrations here
   }
@@ -134,6 +150,16 @@ module.exports = {
 }
 ```
 
+### View Configuration
+
+The view folder helps organize and separate the presentation layer from the business logic in your application.
+
+```js
+view: [
+  "path_to_your_view_directories"
+]
+```
+
 ### Middleware Configuration
 
 The middleware configuration defines methods to intercept requests.
@@ -147,12 +173,10 @@ The middleware configuration defines methods to intercept requests.
 Middleware file:
 
 ```js
-function (model, locale) {
-  return function (req, res, next) {
-    // Middleware logic goes here
-
-    next();
-  };
+function ({ env, model, locale, middleware }) {
+  return [
+    // all handler methods
+  ];
 }
 ```
 
@@ -178,8 +202,7 @@ In the context of Express.js, an Express handler is a function that processes HT
     "router": "endpoint of router" or ["module name", "endpoint of router"],
     "handler": {
       "endpoint": {
-        "method": "HTTP Method",
-        "handler": require("path_to_service_file")
+        "HTTP Method": require("path_to_service_file")
       }
     }
   }
@@ -189,7 +212,7 @@ In the context of Express.js, an Express handler is a function that processes HT
 Service file:
 
 ```js
-function (model, locale) {
+function ({ env, model, locale, middleware }) {
   return [
     // all handler methods
   ];

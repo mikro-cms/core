@@ -7,6 +7,7 @@ const database = require('./database');
 const schema = require('./schema');
 const model = require('./model');
 const locale = require('./locale');
+const view = require('./view');
 const middleware = require('./middleware');
 const router = require('./router');
 const service = require('./service');
@@ -30,6 +31,8 @@ async function mikroCMS(expressAPP, mikroConfig, cb = null) {
   model.loadModels();
   model.migrates();
   locale.loadLocale();
+  view.loadView();
+  view.publish();
   middleware.loadMiddleware();
   router.loadRouting();
   service.loadServices();

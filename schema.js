@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const sequelize = require('sequelize');
 const config = require('./config');
 const database = require('./database');
 
@@ -40,18 +40,18 @@ function loadSchema() {
         }
 
         try {
-          const schemaStructure = schema.structure(DataTypes);
+          const schemaStructure = schema.structure(sequelize);
 
           if (typeof schemaStructure !== 'object') {
-            throw new Error(`Invalid schema structure for module "${moduleName}" and schema "${schemaName}"`);
+            throw new Error('invalid schema structure');
           }
 
           if (typeof schemaStructure.attributes !== 'object') {
-            throw new Error(`Invalid schema attributes for module "${moduleName}" and schema "${schemaName}"`);
+            throw new Error('invalid schema attributes');
           }
 
           if (typeof schemaStructure.options !== 'object') {
-            throw new Error(`Invalid schema options for module "${moduleName}" and schema "${schemaName}"`);
+            throw new Error('invalid schema options');
           }
 
           source[moduleName][schemaName] = database.source[schema.connection].define(
@@ -60,7 +60,7 @@ function loadSchema() {
             schemaStructure.options
           );
         } catch (err) {
-          throw new Error(err);
+          throw new Error(`Failed to parsing schema structure for module "${moduleName}" and schema "${schemaName}" : ${err}`);
         }
       }
     }

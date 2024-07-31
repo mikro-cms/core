@@ -1,4 +1,3 @@
-const path = require('path');
 const srcExpress = require('express');
 const coreExpress = require('./express');
 const config = require('./config');

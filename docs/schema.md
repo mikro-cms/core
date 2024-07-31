@@ -18,7 +18,7 @@ The schema configuration defines the structure of your database tables using Seq
 - **structure**: Reference will be embed to defining the model.
 
 ```js
-function (DataTypes) {
+function ({ DataTypes }) {
   return {
     attributes: {
       // defining the fields of the model
@@ -36,6 +36,7 @@ The model file exports a function that receives several parameters and returns a
 ### Parameters
 
 - **DataTypes**: An instance from Sequelize DataTypes.
+- and many other parameters from Sequelize
 
 ### Return Values
 
