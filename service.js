@@ -74,7 +74,7 @@ function loadServices() {
                 source[moduleName][serviceIndex][endpoint][method] = service.handler[endpoint][method]({
                   env: config.env,
                   model: model.selectModel(moduleName),
-                  trans: locale.trans,
+                  locale: locale.trans,
                   middleware: middleware.selectMiddleware(moduleName)
                 });
 
